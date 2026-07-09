@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 380" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" role="img" aria-label="longevity-compass banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6f2ea"/><stop offset="1" stop-color="#efe7d9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1100" height="380" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1098" height="378" fill="none" stroke="#e2dccf" stroke-width="2"/>
+  <text x="56" y="78" font-family="Georgia,serif" font-size="22" fill="#c2552a">✦</text>
+  <text x="54" y="166" font-family="Georgia,serif" font-size="58" font-weight="600" fill="#1b2230">longevity-compass</text>
+  <text x="58" y="206" font-size="20" fill="#5d5446">Will your nest egg outlast you? A retirement money-survival simulator</text>
+  <text x="58" y="234" font-size="15" fill="#8a8071">你的养老钱,能撑到你走的那天吗 · 蒙特卡洛 · 序列风险 × 长寿风险</text>
+  <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="13" fill="#c2552a">
+    <rect x="58" y="258" width="104" height="30" rx="15" fill="none" stroke="#e3c3b3"/><text x="110" y="278" text-anchor="middle">In-browser</text>
+    <rect x="172" y="258" width="112" height="30" rx="15" fill="none" stroke="#e3c3b3"/><text x="228" y="278" text-anchor="middle">Monte Carlo</text>
+    <rect x="294" y="258" width="96" height="30" rx="15" fill="none" stroke="#e3c3b3"/><text x="342" y="278" text-anchor="middle">Real data</text>
+  </g>
+  <g transform="translate(720,72)">
+    <rect width="324" height="236" rx="14" fill="#fffdf8" stroke="#e2dccf"/>
+    <line x1="26" y1="196" x2="298" y2="196" stroke="#ddd5c6"/>
+    <!-- fan band: widens with age, dips toward zero late -->
+    <path d="M26,150 L86,140 L146,120 L206,92 L262,74 L298,66 L298,150 L262,152 L206,158 L146,170 L86,180 L26,166 Z" fill="#e2efec" opacity="0.85"/>
+    <path d="M26,150 L86,146 L146,136 L206,124 L262,116 L298,110 L298,150 L262,150 L206,152 L146,156 L86,160 L26,158 Z" fill="#bfe0d8" opacity="0.8"/>
+    <!-- median path -->
+    <polyline points="26,150 86,143 146,128 206,108 262,95 298,88" fill="none" stroke="#1f6f63" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- expected-death marker -->
+    <line x1="246" y1="196" x2="246" y2="34" stroke="#6b6456" stroke-width="1.2" stroke-dasharray="4 4"/>
+    <text x="250" y="46" font-family="ui-monospace,monospace" font-size="10" fill="#6b6456">life expectancy</text>
+    <text x="26" y="220" font-family="ui-monospace,monospace" font-size="11" fill="#8a8071">balance across possible lifetimes  ·  age →</text>
+  </g>
+  <text x="56" y="350" font-family="ui-monospace,Menlo,monospace" font-size="12" fill="#a8a293">github.com/DENGYUFAN0  ·  the compass tools</text>
+</svg>

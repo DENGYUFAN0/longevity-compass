@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Longevity Compass · 养老罗盘</title>
+<meta name="description" content="A retirement money-survival simulator — Monte Carlo with sequence-of-returns risk and longevity, on real historical returns. Runs in your browser; your numbers never leave your device. 退休提取阶段的蒙特卡洛存活模拟器,纯前端、数据不出本地。">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="brand">
+      <span class="compass" aria-hidden="true">✦</span>
+      <div>
+        <h1>Longevity&nbsp;Compass <span class="zhname">· 养老罗盘</span></h1>
+        <p class="tag" data-i18n="tagline">你的养老钱,能撑到你走的那天吗?把序列风险和长寿风险一起算。</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="langSeg"><button data-lang="zh" class="on">中文</button><button data-lang="en">EN</button></div>
+      <select id="curSel" aria-label="currency"><option value="¥">¥</option><option value="$">$</option><option value="€">€</option><option value="£">£</option></select>
+    </div>
+  </header>
+
+  <p class="privacy" data-i18n="privacy">🔒 全部模拟在你的浏览器里完成,数据只存本机,不上传任何服务器。</p>
+
+  <main>
+    <section class="card inputs">
+      <h2 data-i18n="yourPlan">你的方案</h2>
+      <div class="grid">
+        <label class="fld"><span data-i18n="startAge">退休/起始年龄</span><input type="number" id="startAge" min="45" max="85" step="1"></label>
+        <label class="fld"><span data-i18n="balance">养老资产(今天的钱)</span><input type="number" id="balance" min="0" step="100000"></label>
+        <label class="fld"><span data-i18n="wrate">首年提取率</span><div class="pct"><input type="number" id="wrate" min="1" max="10" step="0.1">%</div><small id="spendHint">–</small></label>
+        <label class="fld"><span data-i18n="wStock">股票占比</span><div class="pct"><input type="number" id="wStock" min="0" max="100" step="5">%</div><small data-i18n="wStockHint">其余为债券</small></label>
+        <label class="fld"><span data-i18n="strategy">提取策略</span>
+          <select id="strategy">
+            <option value="fixed" data-i18n="stratFixed">定额(按实际购买力)</option>
+            <option value="guardrails" data-i18n="stratGuard">护栏(市场差就少花)</option>
+            <option value="percent" data-i18n="stratPercent">按当前资产比例</option>
+          </select></label>
+        <label class="fld"><span data-i18n="longMode">寿命假设</span>
+          <select id="longMode">
+            <option value="model" data-i18n="longModel">把长寿风险建模</option>
+            <option value="planTo" data-i18n="longPlan">规划到固定年龄</option>
+          </select></label>
+        <label class="fld" id="remLEFld"><span data-i18n="remLE">起始年龄时的预期余寿</span><div class="pct"><input type="number" id="remLE" min="5" max="40" step="1"><span data-i18n="yrsUnit">年</span></div><small data-i18n="remLEHint">中位;半数人活得更久</small></label>
+        <label class="fld" id="planToFld"><span data-i18n="planTo">规划到</span><div class="pct"><input type="number" id="planTo" min="80" max="105" step="1"><span data-i18n="ageUnit">岁</span></div></label>
+      </div>
+    </section>
+
+    <section class="card hero" id="hero">
+      <div class="hero-main">
+        <span class="hero-kicker" data-i18n="successKick">钱撑到你走的概率</span>
+        <div class="hero-num"><b id="r-success">–</b><span class="unit">%</span></div>
+      </div>
+      <p class="hero-sub" id="r-verdict">–</p>
+    </section>
+
+    <section class="metrics">
+      <div class="card stat"><span class="stat-label" data-i18n="spendLbl">首年支出</span><b class="stat-val" id="r-spend">–</b><small class="stat-foot" data-i18n="spendFoot">今天的购买力 / 年</small></div>
+      <div class="card stat"><span class="stat-label" data-i18n="medEndLbl">中位数遗产</span><b class="stat-val" id="r-endmed">–</b><small class="stat-foot" data-i18n="medEndFoot">离世时剩余(中位)</small></div>
+      <div class="card stat"><span class="stat-label" data-i18n="ruinLbl">若耗尽,中位年龄</span><b class="stat-val" id="r-ruinage">–</b><small class="stat-foot" data-i18n="ruinFoot">失败情形里钱花光的年龄</small></div>
+    </section>
+
+    <section class="card chartbox">
+      <h2 data-i18n="fanTitle">资产轨迹的可能范围(今天的钱)</h2>
+      <p class="chart-note" data-i18n="fanNote">1000+ 次随机历史重演。深带 = 中间 50%,浅带 = 10–90 分位。带越宽,说明"运气/入场时机(序列风险)"影响越大。</p>
+      <div class="legend" id="fanLegend"></div>
+      <div id="chart-fan" class="chart"></div>
+    </section>
+
+    <section class="card chartbox">
+      <h2 data-i18n="curveTitle">提取率 → 成功率</h2>
+      <p class="chart-note" data-i18n="curveNote">同一套资产与寿命假设下,多花一点,成功率掉多快。曲线常常有"悬崖"。</p>
+      <div id="chart-curve" class="chart"></div>
+    </section>
+
+    <details class="card explain">
+      <summary data-i18n="howTitle">方法、假设与局限(点开)</summary>
+      <div class="explain-body" data-i18n-html="howBody"></div>
+    </details>
+  </main>
+
+  <footer>
+    <span id="dataNote">–</span><br>
+    <span data-i18n="footMade">开源 · MIT 许可 · 数据不出本地</span> ·
+    <a href="https://github.com/DENGYUFAN0/longevity-compass" target="_blank" rel="noopener">GitHub</a>
+    <p class="disclaimer" data-i18n="disclaimer">仅为教育与规划用途,不构成投资或理财建议。过往收益不代表未来,模拟结果不是承诺。</p>
+  </footer>
+</div>
+
+<script src="assets/data.js"></script>
+<script src="assets/longevity.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

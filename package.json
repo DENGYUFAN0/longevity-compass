@@ -1,0 +1,24 @@
+{
+  "name": "longevity-compass",
+  "version": "1.0.0",
+  "description": "Retirement money-survival simulator — Monte Carlo with sequence-of-returns risk and longevity, on real historical returns, in your browser. 退休提取阶段的蒙特卡洛存活模拟器,把序列收益风险与寿命不确定性算进去,纯前端、数据不出本地。",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "fetch-data": "node scripts/fetch-data.mjs"
+  },
+  "keywords": [
+    "retirement",
+    "decumulation",
+    "monte-carlo",
+    "sequence-of-returns-risk",
+    "longevity",
+    "safe-withdrawal-rate",
+    "personal-finance",
+    "aging",
+    "养老",
+    "退休"
+  ],
+  "license": "MIT",
+  "private": false
+}

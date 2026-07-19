@@ -6,7 +6,15 @@
   var $ = function (id) { return document.getElementById(id); };
   var forEach = function (sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); };
   var LS = 'longevity_compass_v1';
-  var DATA = (typeof LC_DATA !== 'undefined') ? LC_DATA : (window.LC_DATA || { years: [], stockReal: [], bondReal: [], from: '', to: '' });
+  var LC_RAW = (typeof LC_DATA !== 'undefined') ? LC_DATA : (window.LC_DATA || {});
+  var DATASETS = LC_RAW.datasets || [];
+  var DEFAULT_DATASET_ID = LC_RAW.defaultId || (DATASETS[0] && DATASETS[0].id) || '';
+  function findDataset(id) {
+    var d = null;
+    for (var i = 0; i < DATASETS.length; i++) { if (DATASETS[i].id === id) { d = DATASETS[i]; break; } }
+    return d || DATASETS[0] || { years: [], stockReal: [], bondReal: [], from: '', to: '', label: {}, source: '' };
+  }
+  var DATA; // set once state.dataset is known, see below
 
   /* ---------------- i18n ---------------- */
   var STR = {
@@ -31,7 +39,8 @@
       verdictLow: '偏紧:有相当概率提前花光。考虑降低支出、调整股债搭配,或延后退休。',
       verdictBad: '耗尽风险高:当前花法很可能撑不到你走那天。',
       footMade: '开源 · MIT 许可 · 数据不出本地',
-      dataNote: '历史数据:标普500全收益 + 美国全债市,已扣通胀 · {from}–{to} · 来源 Yahoo Finance / FRED',
+      dataNote: '历史数据:标普500(含股息) + {bond},已扣通胀 · {from}–{to} · 来源 {source}',
+      dataSel: '数据集',
       disclaimer: '仅为教育与规划用途,不构成投资或理财建议。过往收益不代表未来,模拟结果不是承诺。',
       howBody: '<h4>它在算什么</h4>退休后逐年:年初按你的策略取钱,余下的资产随「那一年」的真实收益涨跌。把这套过程用<b>历史真实收益</b>随机重演上千次,统计你在离世前<b>没有把钱花光</b>的比例 = 成功率。<h4>两个被普通计算器忽略的风险</h4><b>序列收益风险</b>:同样的平均收益,如果<b>头几年</b>就熊市,边取钱边亏,组合可能再也回不来——所以退休<b>开局</b>的运气,比长期平均更致命。<b>长寿风险</b>:「规划到预期寿命」其实是抛硬币——按定义有一半人活得更久。默认用 Gompertz 死亡率曲线把寿命的不确定性也随机化。<h4>都用「今天的钱」</h4>收益为<b>实际收益</b>(已扣通胀),支出为恒定实际购买力,所以每个数字都是今天的购买力。<h4>提取策略</h4>定额=购买力恒定(最经典也最脆);护栏=市场差的年份自动少花(Guyton-Klinger 简化);按比例=永不清零但收入起伏大。<h4>数据与局限</h4>用一段真实历史做自助重采样(见页脚年份),它<b>没</b>覆盖更早的 1970 年代滞胀等更糟序列——真实风险可能更高。未计:税、超出输入的费用、单一国别/长期护理冲击、养老金/社保。这是规划罗盘,不是精算,更不是投资建议。'
     },
@@ -56,17 +65,20 @@
       verdictLow: 'Tight: a real chance of running out early. Consider spending less, adjusting the mix, or retiring later.',
       verdictBad: 'High risk of running out: this spending likely won\'t last as long as you do.',
       footMade: 'Open source · MIT · data stays local',
-      dataNote: 'History: S&P 500 total return + US total bond, inflation-adjusted · {from}–{to} · via Yahoo Finance / FRED',
+      dataNote: 'History: S&P 500 (incl. dividends) + {bond}, inflation-adjusted · {from}–{to} · via {source}',
+      dataSel: 'Dataset',
       disclaimer: 'For education and planning only — not investment or financial advice. Past returns aren\'t future; a simulation is not a promise.',
       howBody: '<h4>What it computes</h4>Year by year in retirement: withdraw at the start of the year per your strategy, then the rest earns THAT year\'s real return. Replaying this over <b>real historical returns</b> a thousand+ times, the success rate is the share of runs where you <b>don\'t run out of money before you die</b>.<h4>Two risks naive calculators skip</h4><b>Sequence-of-returns risk</b>: at the same average return, a bear market in the <b>first few years</b> — while you\'re withdrawing — can sink a portfolio for good. Your luck at the <b>start</b> matters more than the long-run average. <b>Longevity risk</b>: "plan to life expectancy" is a coin flip — by definition half live longer. By default a Gompertz mortality curve randomizes lifespan too.<h4>Everything in today\'s money</h4>Returns are <b>real</b> (inflation removed) and spending is constant real, so every figure is today\'s purchasing power.<h4>Strategies</h4>Fixed = constant purchasing power (classic, most fragile); Guardrails = auto-trim spending in bad years (simplified Guyton–Klinger); Percent = never hits zero but income swings.<h4>Data & limits</h4>Bootstrapped from one real history window (see footer). It does <b>not</b> include worse earlier sequences like 1970s stagflation — real risk may be higher. It ignores taxes, fees beyond your input, single-country / long-term-care shocks, and pensions. A planning compass, not an actuary — and not advice.'
     }
   };
 
   /* ---------------- state ---------------- */
-  var DEFAULTS = { startAge: 65, balance: 2000000, wrate: 4, wStock: 60, strategy: 'fixed', longMode: 'model', remLE: 20, planTo: 95, cur: '¥', lang: 'zh' };
+  var DEFAULTS = { startAge: 65, balance: 2000000, wrate: 4, wStock: 60, strategy: 'fixed', longMode: 'model', remLE: 20, planTo: 95, cur: '¥', lang: 'zh', dataset: DEFAULT_DATASET_ID };
   var state = Object.assign({}, DEFAULTS, load());
   function load() { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } }
   function persist() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+  if (DATASETS.every(function (d) { return d.id !== state.dataset; })) state.dataset = DEFAULT_DATASET_ID;
+  DATA = findDataset(state.dataset);
 
   var FIELDS = ['startAge', 'balance', 'wrate', 'wStock', 'strategy', 'longMode', 'remLE', 'planTo'];
   FIELDS.forEach(function (f) {
@@ -76,6 +88,17 @@
   });
   $('curSel').value = state.cur;
   $('curSel').addEventListener('change', function () { state.cur = this.value; persist(); render(); });
+  var $dataSel = $('dataSel');
+  if ($dataSel) {
+    $dataSel.innerHTML = DATASETS.map(function (d) {
+      return '<option value="' + d.id + '">' + (d.label && d.label[state.lang] || d.id) + '</option>';
+    }).join('');
+    $dataSel.value = state.dataset;
+    $dataSel.addEventListener('change', function () {
+      state.dataset = this.value; persist(); DATA = findDataset(state.dataset);
+      updateDataNote(); render();
+    });
+  }
   forEach('#langSeg button', function (b) { b.addEventListener('click', function () { setLang(this.dataset.lang); }); });
 
   /* ---------------- helpers ---------------- */
@@ -96,6 +119,13 @@
   function modeVis() {
     $('remLEFld').style.display = state.longMode === 'model' ? '' : 'none';
     $('planToFld').style.display = state.longMode === 'planTo' ? '' : 'none';
+  }
+  function updateDataNote() {
+    $('dataNote').textContent = fill(t('dataNote'), {
+      from: DATA.from, to: DATA.to,
+      source: DATA.source || '',
+      bond: (DATA.bondDesc && DATA.bondDesc[state.lang]) || ''
+    });
   }
 
   /* ---------------- build engine config ---------------- */
@@ -224,7 +254,13 @@
       '<span class="lg"><i class="sw b1"></i>' + t('leg1090') + '</span>' +
       '<span class="lg"><i class="sw b2"></i>' + t('leg2575') + '</span>' +
       '<span class="lg"><i class="sw md"></i>' + t('legMed') + '</span>';
-    $('dataNote').textContent = fill(t('dataNote'), { from: DATA.from, to: DATA.to });
+    if ($dataSel) {
+      forEach('#dataSel option', function (o) {
+        var d = findDataset(o.value);
+        o.textContent = (d.label && d.label[lang]) || d.id;
+      });
+    }
+    updateDataNote();
     render();
   }
 

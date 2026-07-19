@@ -50,7 +50,26 @@ npm run fetch-data   # refresh the bundled real-return history
 
 ## Data & honest limits
 
-Bundled **annual real total returns**: S&P 500 (total return) and US total-bond, deflated by CPI — via Yahoo Finance and FRED. **This is a favorable, ~1989-onward US window.** It does **not** include worse earlier sequences (e.g. 1970s stagflation, the Great Depression), so **real-world risk is likely higher than shown** — longer history (1928+) and China/Korea series are the top data upgrades. The model also ignores taxes, fees beyond your input, long-term-care shocks, pensions/social security, and single-country risk.
+The tool bundles **two** US historical real-return datasets, selectable in the UI. They use **different bond series and cover different windows on purpose** — they are not spliced together into one longer series, since their bond legs aren't comparable instrument-for-instrument:
+
+- **`us1928` (default).** S&P 500 (incl. dividends) vs US 10-year Treasury bond, annual, **1928–2025**. Source: [Aswath Damodaran, NYU Stern](https://pages.stern.nyu.edu/~adamodar/pc/datasets/histretSP.xls) (`histretSP.xls`, "Returns by year" sheet). This is the longer window — it includes the Great Depression, 1970s stagflation, and other harsh sequences the 1989-onward window misses.
+- **`us1989`.** ^SP500TR (S&P 500 Total Return) vs VBMFX (Vanguard Total Bond Market), annual, **1989–2025**, deflated by FRED CPIAUCSL. A shorter, favorable window with a more realistic total-bond-market bond leg (vs. a single 10-year Treasury).
+
+Both are **annual real total returns** (inflation-adjusted, dividends reinvested). Whichever you pick, **real-world risk may be higher than shown** for years outside its window. The model also ignores taxes, fees beyond your input, long-term-care shocks, pensions/social security, and single-country risk.
+
+**China / Korea series: deliberately not included yet.** Investigated and shelved — not a "coming soon", but a real data wall:
+- Equity indices found are **price indices without dividends** reinvested, which understates real total return.
+- Bond-market ETFs with investable history are too short (China ~2013+, Korea ~2009+) to build a meaningful bootstrap window.
+- A reliable, directly fetchable CPI source for both countries wasn't found from this network. Waiting for a better data source before adding these.
+
+**Refreshing the data:**
+
+```bash
+python scripts/extract_damodaran.py   # re-downloads histretSP.xls, extracts + validates us1928
+npm run fetch-data                    # rebuilds assets/data.js from both sources
+```
+
+`fetch-data` refreshes `us1989` from Yahoo Finance + FRED live; **FRED is generally unreachable from mainland-China networks** (TLS reset) — run that step from a network where it resolves, or it silently keeps the last-known `us1989` values while `us1928` still refreshes normally.
 
 **It is a planning compass, not an actuary — and not investment or financial advice.**
 
@@ -61,11 +80,16 @@ longevity-compass/
 ├── index.html
 ├── assets/
 │   ├── longevity.js        # pure Monte Carlo engine (browser + Node, UMD)
-│   ├── data.js             # bundled real-return history (auto-generated)
-│   ├── app.js              # UI, i18n, SVG fan chart + curve, localStorage
+│   ├── data.js             # bundled real-return datasets (auto-generated, v2: multi-dataset)
+│   ├── app.js              # UI, i18n, dataset selector, SVG fan chart + curve, localStorage
 │   └── style.css
-├── scripts/fetch-data.mjs  # refresh the history from Yahoo Finance + FRED
-├── test/longevity.test.js  # node:test unit tests
+├── scripts/
+│   ├── extract_damodaran.py    # downloads + validates the Damodaran us1928 source data
+│   ├── damodaran-annual.json   # extracted us1928 source (committed build material)
+│   └── fetch-data.mjs          # assembles assets/data.js from both sources
+├── test/
+│   ├── longevity.test.js  # node:test unit tests for the engine
+│   └── data.test.js       # node:test unit tests for the bundled datasets
 └── .github/workflows/      # CI (tests) + auto-deploy to GitHub Pages
 ```
 
